@@ -1,0 +1,236 @@
+{
+  "name": "ClickHouse 26.8 LTS",
+  "description": "Real-time analytics database with HTTPS, TLS native port and backups.",
+  "category": "Storage",
+  "tags": [
+    "clickhouse",
+    "olap",
+    "analytics",
+    "columnar",
+    "database",
+    "sql",
+    "backups",
+    "lts"
+  ],
+  "image": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/clickhouse.svg",
+  "upstream": {
+    "clickhouse": "clickhouse/clickhouse-server:26.8.45.6 (ClickHouse 26.8 LTS, patch 45; digest sha256:7a5c190c9cc314f703631bfe7d3ccc03a2e79fddc6ca5310d54fa88dd50e6136, built 2026-11-23)",
+    "backup": "alpine:3.24.2 + curl + rclone 1.76.0; backups use ClickHouse's BACKUP ... TO S3",
+    "checked": "2026-11-24"
+  },
+  "services": {
+    "ClickHouse": {
+      "icon": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/clickhouse.svg",
+      "source": {
+        "repo": "baranberkay96/clickhouse-railway",
+        "rootDirectory": "/services/clickhouse"
+      },
+      "startCommand": null,
+      "preDeployCommand": null,
+      "healthcheckPath": "/ping",
+      "healthcheckTimeout": 300,
+      "restartPolicyType": "ON_FAILURE",
+      "restartPolicyMaxRetries": 10,
+      "numReplicas": 1,
+      "cronSchedule": null,
+      "publicDomain": true,
+      "targetPort": 8123,
+      "tcpProxy": {
+        "port": 9440
+      },
+      "volume": {
+        "mountPath": "/var/lib/clickhouse"
+      },
+      "variables": {
+        "CLICKHOUSE_USER": {
+          "defaultValue": "clickhouse",
+          "description": "Admin user created at boot (replaces ClickHouse's passwordless 'default' user).",
+          "required": true
+        },
+        "CLICKHOUSE_PASSWORD": {
+          "defaultValue": "${{secret(32, \"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789\")}}",
+          "description": "Password of CLICKHOUSE_USER, generated at deploy. Re-applied at every boot. Under 12 characters locks the login (see the deploy log).",
+          "required": true
+        },
+        "CLICKHOUSE_DB": {
+          "defaultValue": "railway",
+          "description": "Database created on the first boot.",
+          "required": false
+        },
+        "CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT": {
+          "defaultValue": "1",
+          "description": "1 = CLICKHOUSE_USER may create users, roles and quotas with SQL (CREATE USER ...).",
+          "required": false
+        },
+        "CLICKHOUSE_LOG_RETENTION_DAYS": {
+          "defaultValue": "7",
+          "description": "Days the system log tables (query_log, part_log, metric_log, trace_log, ...) keep rows.",
+          "required": false
+        },
+        "CLICKHOUSE_EXTRA_CONFIG_XML": {
+          "defaultValue": "",
+          "description": "Optional extra server settings: a complete <clickhouse>...</clickhouse> document written to config.d at boot.",
+          "required": false
+        },
+        "SSL_CERT_DAYS": {
+          "defaultValue": "820",
+          "description": "Validity of the self-signed certificate on the native TLS port 9440 (TCP proxy); renewed within 30 days of expiry.",
+          "required": false
+        },
+        "PORT": {
+          "defaultValue": "8123",
+          "description": "ClickHouse HTTP port: public HTTPS domain, healthcheck (/ping), /play SQL console and /dashboard.",
+          "required": false
+        },
+        "CLICKHOUSE_HOST": {
+          "defaultValue": "${{RAILWAY_PRIVATE_DOMAIN}}",
+          "description": "Private hostname for other services.",
+          "required": false
+        },
+        "CLICKHOUSE_URL": {
+          "defaultValue": "http://${{CLICKHOUSE_USER}}:${{CLICKHOUSE_PASSWORD}}@${{RAILWAY_PRIVATE_DOMAIN}}:8123/${{CLICKHOUSE_DB}}",
+          "description": "HTTP interface over the private network (clickhouse-js, clickhouse-connect, JDBC via http).",
+          "required": false
+        },
+        "CLICKHOUSE_PUBLIC_URL": {
+          "defaultValue": "https://${{CLICKHOUSE_USER}}:${{CLICKHOUSE_PASSWORD}}@${{RAILWAY_PUBLIC_DOMAIN}}/${{CLICKHOUSE_DB}}",
+          "description": "HTTPS interface from outside Railway (port 443).",
+          "required": false
+        },
+        "CLICKHOUSE_NATIVE_URL": {
+          "defaultValue": "clickhouse://${{CLICKHOUSE_USER}}:${{CLICKHOUSE_PASSWORD}}@${{RAILWAY_PRIVATE_DOMAIN}}:9000/${{CLICKHOUSE_DB}}",
+          "description": "Native protocol over the private network (clickhouse-go, clickhouse-client --host).",
+          "required": false
+        },
+        "CLICKHOUSE_PUBLIC_NATIVE_URL": {
+          "defaultValue": "clickhouse://${{CLICKHOUSE_USER}}:${{CLICKHOUSE_PASSWORD}}@${{RAILWAY_TCP_PROXY_DOMAIN}}:${{RAILWAY_TCP_PROXY_PORT}}/${{CLICKHOUSE_DB}}?secure=true&skip_verify=true",
+          "description": "Native protocol with TLS through the TCP proxy (self-signed certificate; egress is billed).",
+          "required": false
+        },
+        "RAILWAY_DEPLOYMENT_DRAINING_SECONDS": {
+          "defaultValue": "60",
+          "description": "Time ClickHouse gets to finish queries and shut down cleanly on redeploy.",
+          "required": false
+        }
+      }
+    },
+    "ClickHouse Backup": {
+      "icon": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/rclone.svg",
+      "source": {
+        "repo": "baranberkay96/clickhouse-railway",
+        "rootDirectory": "/services/backup"
+      },
+      "startCommand": null,
+      "preDeployCommand": null,
+      "healthcheckPath": null,
+      "healthcheckTimeout": null,
+      "restartPolicyType": "NEVER",
+      "numReplicas": 1,
+      "cronSchedule": "0 4 * * *",
+      "publicDomain": false,
+      "targetPort": null,
+      "tcpProxy": null,
+      "volume": null,
+      "variables": {
+        "CLICKHOUSE_HOST": {
+          "defaultValue": "${{ClickHouse.RAILWAY_PRIVATE_DOMAIN}}",
+          "description": "ClickHouse private hostname.",
+          "required": true
+        },
+        "CLICKHOUSE_PORT": {
+          "defaultValue": "${{ClickHouse.PORT}}",
+          "description": "ClickHouse HTTP port.",
+          "required": true
+        },
+        "CLICKHOUSE_USER": {
+          "defaultValue": "${{ClickHouse.CLICKHOUSE_USER}}",
+          "description": "Account that runs BACKUP/RESTORE (kept in sync by reference).",
+          "required": true
+        },
+        "CLICKHOUSE_PASSWORD": {
+          "defaultValue": "${{ClickHouse.CLICKHOUSE_PASSWORD}}",
+          "description": "Password of that account.",
+          "required": true
+        },
+        "CLICKHOUSE_DB": {
+          "defaultValue": "${{ClickHouse.CLICKHOUSE_DB}}",
+          "description": "Default database for restores.",
+          "required": false
+        },
+        "BACKUP_S3_BUCKET": {
+          "defaultValue": "${{Bucket.BUCKET}}",
+          "description": "Railway Bucket that stores the backups.",
+          "required": true
+        },
+        "BACKUP_S3_ENDPOINT": {
+          "defaultValue": "${{Bucket.ENDPOINT}}",
+          "description": "Bucket S3 endpoint (ClickHouse writes to it path-style).",
+          "required": true
+        },
+        "BACKUP_S3_REGION": {
+          "defaultValue": "${{Bucket.REGION}}",
+          "description": "Bucket region.",
+          "required": true
+        },
+        "BACKUP_S3_ACCESS_KEY_ID": {
+          "defaultValue": "${{Bucket.ACCESS_KEY_ID}}",
+          "description": "Bucket access key (sent to ClickHouse in the BACKUP statement; ClickHouse masks it in its logs).",
+          "required": true
+        },
+        "BACKUP_S3_SECRET_ACCESS_KEY": {
+          "defaultValue": "${{Bucket.SECRET_ACCESS_KEY}}",
+          "description": "Bucket secret key.",
+          "required": true
+        },
+        "BACKUP_S3_FORCE_PATH_STYLE": {
+          "defaultValue": "false",
+          "description": "rclone only (listing and retention). Keep false for Railway Buckets.",
+          "required": false
+        },
+        "BACKUP_PREFIX": {
+          "defaultValue": "clickhouse",
+          "description": "Folder in the bucket; each run writes {prefix}/{UTC timestamp}/.",
+          "required": false
+        },
+        "BACKUP_RETENTION_DAYS": {
+          "defaultValue": "14",
+          "description": "Delete complete runs older than this many days.",
+          "required": false
+        },
+        "BACKUP_KEEP_MIN": {
+          "defaultValue": "3",
+          "description": "Always keep at least this many complete runs, whatever their age.",
+          "required": false
+        },
+        "BACKUP_WAIT_SECONDS": {
+          "defaultValue": "600",
+          "description": "How long a run waits for ClickHouse before failing.",
+          "required": false
+        },
+        "BACKUP_MAX_HOURS": {
+          "defaultValue": "12",
+          "description": "Give up waiting for one BACKUP or RESTORE after this many hours.",
+          "required": false
+        },
+        "RESTORE_RUN": {
+          "defaultValue": "latest",
+          "description": "Restore only (start command /usr/local/bin/clickhouse-backup restore): run folder, or latest.",
+          "required": false
+        },
+        "RESTORE_DATABASE": {
+          "defaultValue": "",
+          "description": "Restore only: database to restore. Empty = CLICKHOUSE_DB.",
+          "required": false
+        },
+        "RESTORE_TARGET": {
+          "defaultValue": "",
+          "description": "Restore only: NEW database name. Empty = {database}_restored; existing databases are never touched.",
+          "required": false
+        }
+      }
+    }
+  },
+  "buckets": [
+    "Bucket"
+  ]
+}
