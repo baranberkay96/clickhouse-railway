@@ -74,7 +74,7 @@
         },
         "CLICKHOUSE_EXTRA_CONFIG_XML": {
           "defaultValue": "",
-          "description": "Optional extra server settings: a complete <clickhouse>...</clickhouse> document written to config.d at boot.",
+          "description": "Optional extra server settings: a complete ClickHouse XML config document (clickhouse root element) written to config.d at boot.",
           "required": false
         },
         "SSL_CERT_DAYS": {
