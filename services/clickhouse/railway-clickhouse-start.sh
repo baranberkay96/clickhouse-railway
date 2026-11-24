@@ -148,4 +148,19 @@ if ! clickhouse extract-from-config --config-file /etc/clickhouse-server/config.
 fi
 
 log "system log tables keep ${DAYS} days; native TLS port 9440 $( [ -n "$SECURE_TCP" ] && echo on || echo off )"
+
+# The image creates CLICKHOUSE_DB only while initialising an empty data directory;
+# make sure it exists on every boot (e.g. after a first start that failed later).
+if [ -n "${CLICKHOUSE_DB:-}" ]; then
+  (
+    for _ in $(seq 1 120); do
+      if clickhouse client --host 127.0.0.1 --user "$CLICKHOUSE_USER" --query "CREATE DATABASE IF NOT EXISTS \`${CLICKHOUSE_DB}\`" >/dev/null 2>&1; then
+        log "database ${CLICKHOUSE_DB} is in place"
+        exit 0
+      fi
+      sleep 5
+    done
+    log "WARNING: could not create database ${CLICKHOUSE_DB} within 10 minutes"
+  ) &
+fi
 exec /entrypoint.sh "$@"
