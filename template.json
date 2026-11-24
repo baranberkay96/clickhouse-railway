@@ -67,6 +67,11 @@
           "description": "Days the system log tables (query_log, part_log, metric_log, trace_log, ...) keep rows.",
           "required": false
         },
+        "CLICKHOUSE_LOG_LEVEL": {
+          "defaultValue": "information",
+          "description": "Server log level in the Railway log: error, warning, information, debug or trace.",
+          "required": false
+        },
         "CLICKHOUSE_EXTRA_CONFIG_XML": {
           "defaultValue": "",
           "description": "Optional extra server settings: a complete <clickhouse>...</clickhouse> document written to config.d at boot.",

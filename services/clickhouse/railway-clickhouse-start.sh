@@ -59,6 +59,12 @@ MERGE_POOL=$(clamp $(($(nproc 2>/dev/null || echo 2) * 2)) 4 16)
 if [ "$MEM" -lt 2048 ]; then MERGE_POOL=4; fi
 log "memory limit ${MEM} MB: mark cache ${MARK} MB, index caches ${INDEX} MB, background pool ${MERGE_POOL}"
 
+LOG_LEVEL=${CLICKHOUSE_LOG_LEVEL:-information}
+case "$LOG_LEVEL" in
+  none | fatal | critical | error | warning | notice | information | debug | trace) ;;
+  *) log "WARNING: CLICKHOUSE_LOG_LEVEL='${LOG_LEVEL}' is not a ClickHouse log level; using information"; LOG_LEVEL=information ;;
+esac
+
 DAYS=${CLICKHOUSE_LOG_RETENTION_DAYS:-7}
 if ! is_uint "$DAYS" || [ "$DAYS" -lt 1 ]; then
   log "WARNING: CLICKHOUSE_LOG_RETENTION_DAYS='${DAYS}' is not a whole number >= 1; using 7"
@@ -104,6 +110,13 @@ ttl() { printf '    <%s>\n        <ttl>event_date + INTERVAL %s DAY DELETE</ttl>
     <tcp_port>9000</tcp_port>
     $SECURE_TCP
     <display_name>${RAILWAY_SERVICE_NAME:-clickhouse}</display_name>
+    <!-- Server log to the Railway log (stdout), not to files in the container. -->
+    <logger>
+        <level>${LOG_LEVEL}</level>
+        <console>1</console>
+        <log remove="remove"/>
+        <errorlog remove="remove"/>
+    </logger>
     <mark_cache_size>$((MARK * 1048576))</mark_cache_size>
     <index_mark_cache_size>$((INDEX * 1048576))</index_mark_cache_size>
     <index_uncompressed_cache_size>$((INDEX * 1048576))</index_uncompressed_cache_size>
