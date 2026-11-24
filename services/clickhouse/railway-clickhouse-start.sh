@@ -124,9 +124,10 @@ ttl() { printf '    <%s>\n        <ttl>event_date + INTERVAL %s DAY DELETE</ttl>
     <background_pool_size>${MERGE_POOL}</background_pool_size>
     <max_server_memory_usage_to_ram_ratio>0.85</max_server_memory_usage_to_ram_ratio>
 EOF
-  # Only tables the 26.8 default config enables; naming another one here would enable it.
+  # Only tables the 26.8 default config enables (naming another one would enable it);
+  # opentelemetry_span_log is left out: its default config sets an engine, which forbids <ttl>.
   for table in query_log query_thread_log query_views_log part_log trace_log text_log metric_log \
-    asynchronous_metric_log error_log query_metric_log processors_profile_log opentelemetry_span_log \
+    asynchronous_metric_log error_log query_metric_log processors_profile_log \
     asynchronous_insert_log backup_log s3queue_log blob_storage_log background_schedule_pool_log; do
     ttl "$table"
   done
