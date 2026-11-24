@@ -53,7 +53,7 @@ A single ClickHouse server is simple to start but needs care in production: the 
 
 **Backups and restore**: each run writes a native ClickHouse backup to `clickhouse/{timestamp}/` in the Bucket plus `MANIFEST.txt`. Trigger one with `railway cron run --service "ClickHouse Backup"`. To restore a database, set the backup service's start command to `/usr/local/bin/clickhouse-backup restore`, optionally set `RESTORE_RUN`, `RESTORE_DATABASE` and `RESTORE_TARGET`, run it once and clear the start command again; it restores as `{database}_restored` and never touches an existing database. The ClickHouse server must be able to read the Bucket (it writes and reads the backup itself).
 
-**Scaling**: ClickHouse uses all the CPU and memory you give it; raise the service limits for heavier queries, merges and inserts, and grow the volume (5 GB on Hobby, 50 GB+ on Pro). Batch inserts (thousands of rows per insert) or `async_insert=1` keep merges cheap.
+**Scaling**: ClickHouse idled at about 0.75 GB of memory on Railway in our test (1–1.3 GB after loading a million rows), so use the Hobby plan or higher. It uses all the CPU and memory you give it; raise the service limits for heavier queries, merges and inserts, and grow the volume (5 GB on Hobby, 50 GB+ on Pro). Batch inserts (thousands of rows per insert) or `async_insert=1` keep merges cheap.
 
 **Versions and upgrades**: pinned to 26.8.45.6 (26.8 is an LTS release with a year of fixes). For patch releases, change the tag and digest in `services/clickhouse/Dockerfile`; for the next LTS, take a backup and read the changelog first.
 

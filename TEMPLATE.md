@@ -44,14 +44,22 @@
 
 | Service | Idle RAM | Typical |
 |---|---|---|
-| ClickHouse | see `_reports/round13/203-clickhouse.md` | 0.5–4 GB depending on queries and merges |
+| ClickHouse | 0.75 GB after a restart, 1.0–1.3 GB after loading 1M rows (measured) | 1–4 GB depending on queries and merges |
 | ClickHouse Backup | 0 | |
 
-Hobby recommended (ClickHouse can run in 1 GB for light use, but merges and queries need headroom).
+**Hobby recommended**: idle use is close to the 1 GB Trial cap. About $8–12/month idle at Railway prices plus volume and bucket storage.
 
 ## Verification checklist
 
-See `_reports/round13/203-clickhouse.md`.
+- [x] Both services SUCCESS; `/ping` healthcheck passed; listeners on `[::]` for 8123, 9000, 9440.
+- [x] HTTPS without credentials → 401; with the generated login: `SELECT version()` = 26.8.45.6; `/play`, `/dashboard`, `/ping` 200.
+- [x] Native TLS through the TCP proxy: TLSv1.3 handshake on 9440.
+- [x] MergeTree table, 1,000,000 rows inserted over HTTPS, `GROUP BY` with `uniqExact`.
+- [x] Cache sizes and `max_server_memory_usage_to_ram_ratio` applied; system log tables have TTLs.
+- [x] Backup cron run: `BACKUP_CREATED`, 20 files / 4.5 MB in the Bucket, MANIFEST, retention.
+- [x] Restore run: `railway_restored.events` with 1,000,000 rows.
+- [x] `CLICKHOUSE_PASSWORD=short`: deploy SUCCESS, login locked (403), log explains; restoring the password unlocked it; data persisted across redeploys.
+- [x] First test deploy failed: `<ttl>` on `opentelemetry_span_log` (its default config sets `<engine>`) stops the server; removed. `CLICKHOUSE_DB` is now created on every boot because the image only creates it while initialising an empty data directory.
 
 ## Open questions
 
