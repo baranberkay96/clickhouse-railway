@@ -1,5 +1,7 @@
 # Deploy and Host ClickHouse with Railway
 
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/clickhouse-268-lts?referralCode=20H68q)
+
 ClickHouse is an open-source column-oriented database for real-time analytics: it scans billions of rows per second and compresses data heavily. This community template runs ClickHouse 26.8 LTS with a password-protected HTTPS endpoint, the native protocol over TLS through a TCP proxy, bounded system logs, and daily backups to a Railway Bucket with ClickHouse's own `BACKUP` command.
 
 ## About Hosting ClickHouse
